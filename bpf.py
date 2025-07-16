@@ -149,13 +149,17 @@ class BPFInstruction:
         BPF_JSET: "jset",
     }
 
-    def __init__(self, data, addr):
+    def __init__(self, data, addr, endianness=binja.Endianness.LittleEndian):
         if (addr % BPFInstruction.INSN_SIZE) != 0:
             raise BPFInstruction.InvalidInstructionError(f"Misaligned address {addr:#06x}")
         if len(data) < BPFInstruction.INSN_SIZE:
             raise BPFInstruction.InvalidInstructionError(f"Buffer smaller than min insn length")
 
-        self.code, self.jt, self.jf, self.k = struct.unpack('<HBBI', data[:BPFInstruction.INSN_SIZE])
+        if endianness == binja.Endianness.LittleEndian:
+            layout = '<HBBI'
+        elif endianness == binja.Endianness.BigEndian:
+            layout = '>HBBI'
+        self.code, self.jt, self.jf, self.k = struct.unpack(layout, data[:BPFInstruction.INSN_SIZE])
 
         self.bpf_class = self.code & BPF_CLASS_MASK
         if self.bpf_class in (BPF_LD, BPF_LDX):
