@@ -25,6 +25,8 @@ if __package__ is None or __package__ == '':
 else:
     from . import bpf
 
-bpf.BPF.register()
-bpf.BPFView.register()
+bpf.BPFLEArch.register()
+bpf.BPFBEArch.register()
+bpf.BPFLEView.register()
+bpf.BPFBEView.register()
 bpf.BPFMainCallingConvention.register()

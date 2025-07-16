@@ -279,10 +279,11 @@ class BPFInstruction:
 class RegisterCallingConventionMixin:
     @classmethod
     def register(cls):
-        arch = binja.Architecture[BPF.name]
-        obj = cls(arch, cls.name)
-        arch.register_calling_convention(obj)
-        arch.default_calling_convention = obj
+        for arch_cls in (BPFLEArch, BPFBEArch):
+            arch = binja.Architecture[arch_cls.name]
+            obj = cls(arch, cls.name)
+            arch.register_calling_convention(obj)
+            arch.default_calling_convention = obj
 
 
 class BPFMainCallingConvention(binja.CallingConvention, RegisterCallingConventionMixin):
@@ -291,8 +292,7 @@ class BPFMainCallingConvention(binja.CallingConvention, RegisterCallingConventio
     int_return_reg = "A"
 
 
-class BPF(binja.Architecture):
-    name = "bpf"
+class BPFArch(binja.Architecture):
     address_size = 4
     default_int_size = 4
     instr_alignment = BPFInstruction.INSN_SIZE
@@ -315,7 +315,7 @@ class BPF(binja.Architecture):
 
     def get_instruction_info(self, data, addr):
         try:
-            insn = BPFInstruction(data, addr)
+            insn = BPFInstruction(data, addr, self.endianness)
         except BPFInstruction.InvalidInstructionError as e:
             #print("*** get_instruction_info", data[0:8], f"{addr:#06x}")
             raise
@@ -335,7 +335,7 @@ class BPF(binja.Architecture):
 
     def get_instruction_text(self, data, addr):
         try:
-            insn = BPFInstruction(data, addr)
+            insn = BPFInstruction(data, addr, self.endianness)
         except BPFInstruction.InvalidInstructionError as e:
             #print("*** get_instruction_text", data[0:8], f"{addr:#06x}")
             raise
@@ -562,7 +562,7 @@ class BPF(binja.Architecture):
     def get_instruction_low_level_il(self, data, addr, il):
         #print("*** instructions count", len(il), "il.source_function", il.source_function)
         try:
-            insn = BPFInstruction(data, addr)
+            insn = BPFInstruction(data, addr, self.endianness)
         except BPFInstruction.InvalidInstructionError as e:
             #print("*** get_instruction_low_level_il", data[0:8], f"{addr:#06x}")
             raise
@@ -682,10 +682,17 @@ class BPF(binja.Architecture):
         return BPFInstruction.INSN_SIZE
 
 
-class BPFView(binja.BinaryView):
-    name = "bpf"
-    long_name = "Raw BPF"
+class BPFLEArch(BPFArch):
+    name = "bpf_le"
+    endianness = binja.Endianness.LittleEndian
 
+
+class BPFBEArch(BPFArch):
+    name = "bpf_be"
+    endianness = binja.Endianness.BigEndian
+
+
+class BPFView(binja.BinaryView):
     @classmethod
     def is_valid_for_data(cls, data):
         """
@@ -701,14 +708,14 @@ class BPFView(binja.BinaryView):
         for offset in range(0, data.length, BPFInstruction.INSN_SIZE):
             buffer = data.read(offset, BPFInstruction.INSN_SIZE)
             try:
-                insn = BPFInstruction(buffer, offset)
+                insn = BPFInstruction(buffer, offset, cls.endianness)
             except BPFInstruction.InvalidInstructionError as e:
                 return False
         return True
 
     def __init__(self, data):
         super().__init__(parent_view=data, file_metadata=data.file)
-        self.platform = binja.Architecture[BPF.name].standalone_platform
+        self.platform = binja.Architecture[self.arch_cls.name].standalone_platform
         self.data = data
 
     def init(self):
@@ -729,3 +736,17 @@ class BPFView(binja.BinaryView):
 
     def perform_get_address_size(self):
         return 4
+
+
+class BPFLEView(BPFView):
+    name = "bpf_le"
+    long_name = "Raw BPF LE"
+    endianness = binja.Endianness.LittleEndian
+    arch_cls = BPFLEArch
+
+
+class BPFBEView(BPFView):
+    name = "bpf_be"
+    long_name = "Raw BPF BE"
+    endianness = binja.Endianness.BigEndian
+    arch_cls = BPFBEArch
