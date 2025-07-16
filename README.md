@@ -18,8 +18,10 @@ limited support for NetBSD `BPF_COP`/`BPF_COPX`.
 -   The plugin is currently "bring your own packet header structs".  It should
     come with convenient headers for common packet types, or load them from
     e.g. Linux type libraries.
--   Little endian instruction encoding is assumed, whereas on big endian
-    platforms, BPF uses big endian instruction encoding.
+-   Little endian instruction encoding is currently assumed by the arch and
+    view.  The plugin does not detect endianness yet and there is no way in the
+    UI to override this.  Loading big endian BPF code requires manual tweaking
+    of the plugin.
 -   NetBSD `BPF_COP`/`BPF_COPX` misc instructions are disassembled, but not
     lifted to LLIL yet.
 -   Hovering over certain constants in HLIL results in spurious warnings and
