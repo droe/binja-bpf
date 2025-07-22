@@ -216,6 +216,8 @@ BPF_TXA         = 0x80
 
 
 class BPFInstruction:
+    class InvalidStorageError(Exception):
+        pass
     class InvalidInstructionError(Exception):
         pass
 
@@ -251,9 +253,9 @@ class BPFInstruction:
 
     def __init__(self, data, addr, endianness=binja.Endianness.LittleEndian):
         if (addr % BPFInstruction.INSN_SIZE) != 0:
-            raise BPFInstruction.InvalidInstructionError(f"Misaligned address {addr:#06x}")
+            raise BPFInstruction.InvalidStorageError(f"Misaligned address {addr:#06x}")
         if len(data) < BPFInstruction.INSN_SIZE:
-            raise BPFInstruction.InvalidInstructionError(f"Buffer smaller than min insn length")
+            raise BPFInstruction.InvalidStorageError(f"Buffer smaller than min insn length")
 
         if endianness == binja.Endianness.LittleEndian:
             layout = '<HBBI'
@@ -420,6 +422,8 @@ class BPFArch(binja.Architecture):
     def get_instruction_info(self, data, addr):
         try:
             insn = BPFInstruction(data, addr, self.endianness)
+        except BPFInstruction.InvalidStorageError as e:
+            return None
         except BPFInstruction.InvalidInstructionError as e:
             #print("*** get_instruction_info", data[0:8], f"{addr:#06x}")
             raise
@@ -440,6 +444,8 @@ class BPFArch(binja.Architecture):
     def get_instruction_text(self, data, addr):
         try:
             insn = BPFInstruction(data, addr, self.endianness)
+        except BPFInstruction.InvalidStorageError as e:
+            return [], 0
         except BPFInstruction.InvalidInstructionError as e:
             #print("*** get_instruction_text", data[0:8], f"{addr:#06x}")
             raise
@@ -674,6 +680,8 @@ class BPFArch(binja.Architecture):
         #print("*** instructions count", len(il), "il.source_function", il.source_function)
         try:
             insn = BPFInstruction(data, addr, self.endianness)
+        except BPFInstruction.InvalidStorageError as e:
+            return 0
         except BPFInstruction.InvalidInstructionError as e:
             #print("*** get_instruction_low_level_il", data[0:8], f"{addr:#06x}")
             raise
@@ -824,7 +832,7 @@ class BPFView(binja.BinaryView):
             buffer = data.read(offset, BPFInstruction.INSN_SIZE)
             try:
                 insn = BPFInstruction(buffer, offset, cls.endianness)
-            except BPFInstruction.InvalidInstructionError as e:
+            except (BPFInstruction.InvalidStorageError, BPFInstruction.InvalidInstructionError) as e:
                 return False
         return True
 
