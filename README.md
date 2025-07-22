@@ -16,14 +16,13 @@ FreeBSD, NetBSD, OpenBSD and Linux flavours, including FreeBSD/Linux
 
 ## Known issues
 
--   The plugin is currently "bring your own packet header structs".  It should
-    come with convenient headers for common packet types, or load them from
-    e.g. Linux type libraries.
--   NetBSD `BPF_COP`/`BPF_COPX` misc instructions are disassembled, but not
-    lifted to LLIL yet.
 -   Hovering over certain constants in HLIL results in spurious warnings and
     errors in core without impairing plugin functionality.  This seems to be
     a bug in core, not in the plugin.
+-   NetBSD `BPF_COP`/`BPF_COPX` misc instructions are disassembled, but not
+    lifted to LLIL yet.
+-   The plugin does ship packet header structs, though field access beyond the
+    IP header will not be resolved by Binary Ninja due to the dynamic offset.
 
 ## Plans
 
