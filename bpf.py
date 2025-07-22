@@ -28,7 +28,7 @@ import traceback
 from dataclasses import dataclass
 
 
-def _label_for_address(self, addr):
+def _LowLevelILFunction_label_for_address(self, addr):
     """
     Get the label for an absolute virtual memory address, creating the label if
     it does not exist yet.
@@ -39,7 +39,7 @@ def _label_for_address(self, addr):
         label = self.get_label_for_address(self.arch, addr)
     assert label is not None
     return label
-binja.LowLevelILFunction.x_label_for_address = _label_for_address
+binja.LowLevelILFunction.x_label_for_address = _LowLevelILFunction_label_for_address
 
 
 def _LowLevelILLabel___str__(self):
