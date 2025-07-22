@@ -566,7 +566,10 @@ class BPFArch(binja.Architecture):
         else:
             op_r = il.const(4, offset)
         addr = il.add(4, il.reg(4, "P"), op_r)
-        return il.load(width, addr)
+        value = il.load(width, addr)
+        if width < 4:
+            value = il.zero_extend(4, value)
+        return value
 
     def get_instruction_low_level_il(self, data, addr, il):
         #print("*** instructions count", len(il), "il.source_function", il.source_function)
