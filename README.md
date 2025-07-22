@@ -10,8 +10,9 @@ Disassemble and decompile classic Berkeley Packet Filter (BPF) programs in
 [Binary Ninja](https://binary.ninja/).
 
 Currently supports classic BPF programs in their little and big endian macOS,
-FreeBSD, NetBSD and Linux flavours, including support for FreeBSD/Linux
-`BPF_XOR`/`BPF_MOD` and limited support for NetBSD `BPF_COP`/`BPF_COPX`.
+FreeBSD, NetBSD, OpenBSD and Linux flavours, including FreeBSD/Linux
+`BPF_XOR`/`BPF_MOD`, OpenBSD `BPF_RND`, and limited support for NetBSD
+`BPF_COP`/`BPF_COPX`.
 
 ## Known issues
 
@@ -37,6 +38,7 @@ BPF ISA:
 
 -   [BPF(4) manual page, FreeBSD](https://man.freebsd.org/cgi/man.cgi?bpf)
 -   [BPF(4) manual page, NetBSD](https://man.netbsd.org/bpf.4)
+-   [BPF(4) manual page, OpenBSD](https://man.openbsd.org/bpf.4)
 
 eBPF ISA:
 

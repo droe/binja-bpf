@@ -74,6 +74,7 @@ BPF_IND         = 0x40
 BPF_MEM         = 0x60
 BPF_LEN         = 0x80
 BPF_MSH         = 0xa0
+BPF_RND         = 0xc0 # OpenBSD
 
 # alu
 BPF_ALUOP_MASK  = 0xf0
@@ -212,6 +213,10 @@ class BPFInstruction:
             elif self.bpf_mode == BPF_IND:
                 if self.code != self.bpf_class + self.bpf_mode + self.bpf_size:
                     return f"Unexpected bits set in ld ind opcode {self.code:#04x}"
+            elif self.bpf_mode == BPF_RND:
+                # BPF_W is 0
+                if self.code != self.bpf_class + self.bpf_mode + BPF_W:
+                    return f"Unexpected bits set in ld rnd opcode {self.code:#04x}"
             else:
                 return f"Unknown ld opcode {self.code:#04x}"
         elif self.bpf_class == BPF_LDX:
@@ -384,6 +389,10 @@ class BPFArch(binja.Architecture):
                     binja.InstructionTextToken(binja.InstructionTextTokenType.TextToken, ":"),
                     binja.InstructionTextToken(binja.InstructionTextTokenType.IntegerToken, f"{insn.ld_width}"),
                     binja.InstructionTextToken(binja.InstructionTextTokenType.EndMemoryOperandToken, "]"),
+                ]
+            elif insn.bpf_mode == BPF_RND:
+                tokens += [
+                    binja.InstructionTextToken(binja.InstructionTextTokenType.TextToken, "arc4random()"),
                 ]
         elif insn.bpf_class == BPF_LDX:
             tokens = [
@@ -578,6 +587,10 @@ class BPFArch(binja.Architecture):
                 value = self._load_from_P(il, insn.ld_width, insn.k)
             elif insn.bpf_mode == BPF_IND:
                 value = self._load_from_P(il, insn.ld_width, insn.k, index=True)
+            elif insn.bpf_mode == BPF_RND:
+                temp_reg = binja.LLIL_TEMP(il.temp_reg_count)
+                il.append(il.intrinsic([binja.ILRegister(il.arch, temp_reg)], 'arc4random', []))
+                value = il.reg(4, temp_reg)
             il.append(il.set_reg(4, "A", value))
         elif insn.bpf_class == BPF_LDX:
             if insn.bpf_mode == BPF_IMM:
