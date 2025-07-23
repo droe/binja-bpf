@@ -65,6 +65,10 @@ class BPFArch(binja.Architecture):
     }
     stack_pointer = 'sp'
 
+    intrinsics = {
+        'arc4random': binja.IntrinsicInfo([binja.Type.int(4)], []),
+    }
+
     def get_instruction_info(self, data, addr):
         try:
             insn = self._insn_cls(data, addr)

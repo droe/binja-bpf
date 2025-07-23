@@ -51,9 +51,10 @@ class BPFCompiler:
     @classmethod
     def build_examples(cls, prefix):
         """
-        Writes the classic BPF filter examples given in the BSD manual pages to
-        path.
+        Writes a number of BPF filter examples to path.
         """
+
+        # Classic reverse ARP example from BSD manual pages
         ETHERTYPE_REVARP = 0x8035
         REVARP_REQUEST = 3
         SIZEOF_ETHER_ARP = 28
@@ -68,6 +69,7 @@ class BPFCompiler:
         with open(f"{prefix}rarp.bpfcode", "wb") as f:
             f.write(bytes(c))
 
+        # Classic IP address pair example from BSD manual pages
         ETHERTYPE_IP = 0x0800
         c = cls()
         c.BPF_STMT(BPF_LD+BPF_H+BPF_ABS, 12)
@@ -84,6 +86,7 @@ class BPFCompiler:
         with open(f"{prefix}ipaddr.bpfcode", "wb") as f:
             f.write(bytes(c))
 
+        # Classic TCP finger example from BSD manual pages
         ETHERTYPE_IP = 0x0800
         IPPROTO_TCP = 6
         c = cls()
@@ -102,6 +105,14 @@ class BPFCompiler:
         c.BPF_STMT(BPF_RET+BPF_K, 0)
         with open(f"{prefix}tcpfinger.bpfcode", "wb") as f:
             f.write(bytes(c))
+
+        # OpenBSD specific instructions
+        c = cls()
+        c.BPF_STMT(BPF_LD+BPF_W+BPF_RND, 0)
+        c.BPF_STMT(BPF_RET+BPF_A, 0)
+        with open(f"{prefix}openbsd.bpfcode", "wb") as f:
+            f.write(bytes(c))
+
 
 
 class BPFLECompiler(BPFCompiler):
