@@ -36,14 +36,14 @@ class BPFCompiler:
     def __init__(self):
         self._insns = []
 
-    def _insn(self, code, jt, jf, k):
+    def insn(self, code, jt, jf, k):
         self._insns.append(struct.pack(self._insn_layout, code, jt, jf, k))
 
     def BPF_STMT(self, opcode, operand):
-        self._insn(opcode, 0, 0, operand)
+        self.insn(opcode, 0, 0, operand)
 
     def BPF_JUMP(self, opcode, operand, true_offset, false_offset):
-        self._insn(opcode, true_offset, false_offset, operand)
+        self.insn(opcode, true_offset, false_offset, operand)
 
     def __bytes__(self):
         return b''.join(self._insns)
@@ -124,6 +124,46 @@ class BPFCompiler:
         c.BPF_STMT(BPF_RET+BPF_A, 0)
         c.write_to(f"{prefix}freebsd.bpfcode")
 
+        # bpfdoor as per https://raw.githubusercontent.com/snapattack/bpfdoor-scanner/refs/heads/main/sample/bpfdoor.c
+        c = cls()
+        lines = """
+                { 0x28, 0, 0, 0x0000000c },
+                { 0x15, 0, 27, 0x00000800 },
+                { 0x30, 0, 0, 0x00000017 },
+                { 0x15, 0, 5, 0x00000011 },
+                { 0x28, 0, 0, 0x00000014 },
+                { 0x45, 23, 0, 0x00001fff },
+                { 0xb1, 0, 0, 0x0000000e },
+                { 0x48, 0, 0, 0x00000016 },
+                { 0x15, 19, 20, 0x00007255 },
+                { 0x15, 0, 7, 0x00000001 },
+                { 0x28, 0, 0, 0x00000014 },
+                { 0x45, 17, 0, 0x00001fff },
+                { 0xb1, 0, 0, 0x0000000e },
+                { 0x48, 0, 0, 0x00000016 },
+                { 0x15, 0, 14, 0x00007255 },
+                { 0x50, 0, 0, 0x0000000e },
+                { 0x15, 11, 12, 0x00000008 },
+                { 0x15, 0, 11, 0x00000006 },
+                { 0x28, 0, 0, 0x00000014 },
+                { 0x45, 9, 0, 0x00001fff },
+                { 0xb1, 0, 0, 0x0000000e },
+                { 0x50, 0, 0, 0x0000001a },
+                { 0x54, 0, 0, 0x000000f0 },
+                { 0x74, 0, 0, 0x00000002 },
+                { 0xc, 0, 0, 0x00000000 },
+                { 0x7, 0, 0, 0x00000000 },
+                { 0x48, 0, 0, 0x0000000e },
+                { 0x15, 0, 1, 0x00005293 },
+                { 0x6, 0, 0, 0x0000ffff },
+                { 0x6, 0, 0, 0x00000000 },
+        """.strip().splitlines()
+        for line in lines:
+            for rmc in ("{", ",", "}"):
+                line = line.replace(rmc, "")
+            ints = [int(x, 0) for x in line.strip().split()]
+            c.insn(*ints)
+        c.write_to(f"{prefix}bpfdoor.bpfcode")
 
 class BPFLECompiler(BPFCompiler):
     _insn_layout = '<HBBI'
