@@ -212,6 +212,8 @@ enum icmp_type_t {
 
 
 class BPFView(binja.BinaryView):
+    BASE_ADDR = 0x0
+
     @classmethod
     def is_valid_for_data(cls, data):
         # Raw BPF bytecode does not have any header, so we check that the buffer
@@ -235,22 +237,43 @@ class BPFView(binja.BinaryView):
         self.platform = binja.Architecture[self._arch_cls.name].standalone_platform
         self.data = data
 
+    def guess_packet_struct(self):
+        """
+        Guess the appropriate packet struct, i.e. whether the BPF program
+        operates on Ethernet packets or IP packets, i.e. whether offset 0 of P
+        is the start of an IPv4/IPv6 packet header or an Ethernet frame header.
+        """
+        for addr in range(self.BASE_ADDR, self.data.length, BPFInstruction.INSN_SIZE):
+            insn_buffer = self.data.read(addr, BPFInstruction.INSN_SIZE)
+            insn = self._insn_cls(insn_buffer, addr)
+            # mov A, P[0xc:2]   ; load ether type
+            if insn.code == BPF_LD + BPF_H + BPF_ABS and insn.k == 0xc:
+                return "ether_packet"
+            # mov A, P[0x0:1]   ; load IP version
+            if insn.code == BPF_LD + BPF_B + BPF_ABS and insn.k == 0:
+                return "ip_packet"
+        return "ether_packet"
+
     def init(self):
         size = self.data.length
-        self.add_auto_segment(0x0, size, 0, size,
+        self.add_auto_segment(self.BASE_ADDR, size,
+                              self.BASE_ADDR, size,
                               binja.SegmentFlag.SegmentReadable
                               | binja.SegmentFlag.SegmentExecutable)
-        self.add_user_section(".text", 0x0, size,
+        self.add_user_section(".text", self.BASE_ADDR, size,
                               binja.SectionSemantics.ReadOnlyCodeSectionSemantics)
-        self.add_entry_point(0x0)
+        self.add_entry_point(self.BASE_ADDR)
         self.x_load_types(_TYPE_ID_SOURCE, _TYPE_SOURCE)
+        entry_point_func = self.get_function_at(self.BASE_ADDR)
+        struct_name = self.guess_packet_struct()
+        entry_point_func.type = f"uint32_t bpfmain(struct {struct_name} * __ptr32 P, uint32_t len)"
         return True
 
     def perform_is_executable(self):
         return True
 
     def perform_get_entry_point(self):
-        return 0
+        return self.BASE_ADDR
 
     def perform_get_address_size(self):
         return 4
