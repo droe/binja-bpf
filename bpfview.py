@@ -34,6 +34,7 @@ binja.BinaryView.x_load_types = _BinaryView_load_types
 
 _TYPE_ID_SOURCE = "binja-bpf"
 
+
 _TYPE_SOURCE = """
 struct eth_hdr __packed {
     uint8_t     eth_dst[6];
@@ -64,63 +65,108 @@ struct ip6_hdr __packed {
 };
 
 struct udp_hdr __packed {
-    uint16_t udp_sport;
-    uint16_t udp_dport;
-    uint16_t udp_len;
-    uint16_t udp_chksum;
+    uint16_t    udp_sport;
+    uint16_t    udp_dport;
+    uint16_t    udp_len;
+    uint16_t    udp_chksum;
 };
 
 struct tcp_hdr __packed {
-    uint16_t tcp_sport;
-    uint16_t tcp_dport;
-    uint32_t tcp_seq;
-    uint32_t tcp_ack;
-    uint16_t tcp_flags;
-    uint16_t tcp_win;
-    uint16_t tcp_chksum;
-    uint16_t tcp_urgptr;
+    uint16_t    tcp_sport;
+    uint16_t    tcp_dport;
+    uint32_t    tcp_seq;
+    uint32_t    tcp_ack;
+    uint16_t    tcp_flags;
+    uint16_t    tcp_win;
+    uint16_t    tcp_chksum;
+    uint16_t    tcp_urgptr;
+};
+
+struct sctp_chunk_hdr __packed {
+    uint8_t     sctp_ctype;
+    uint8_t     sctp_cflags;
+    uint16_t    sctp_clen;
+};
+
+struct sctp_hdr __packed {
+    uint16_t    sctp_sport;
+    uint16_t    sctp_dport;
+    uint32_t    sctp_vtag;
+    uint32_t    sctp_chksum;
+    struct sctp_chunk_hdr sctp_chunk[1];
 };
 
 struct ip_packet __packed {
-    union
-    {
+    union {
         struct {
             struct ip_hdr ip;
             union {
-                struct tcp_hdr tcp;
-                struct udp_hdr udp;
+                struct tcp_hdr  tcp;
+                struct udp_hdr  udp;
+                struct sctp_hdr sctp;
             };
         };
         struct {
             struct ip6_hdr ip6;
             union {
-                struct tcp_hdr tcp6;
-                struct udp_hdr udp6;
+                struct tcp_hdr  tcp6;
+                struct udp_hdr  udp6;
+                struct sctp_hdr sctp6;
             };
         };
     };
 };
 
-struct ether_packet __packed
-{
+struct ether_packet __packed {
     struct eth_hdr eth;
-    union
-    {
+    union {
         struct {
             struct ip_hdr ip;
             union {
-                struct tcp_hdr tcp;
-                struct udp_hdr udp;
+                struct tcp_hdr  tcp;
+                struct udp_hdr  udp;
+                struct sctp_hdr sctp;
             };
         };
         struct {
             struct ip6_hdr ip6;
             union {
-                struct tcp_hdr tcp6;
-                struct udp_hdr udp6;
+                struct tcp_hdr  tcp6;
+                struct udp_hdr  udp6;
+                struct sctp_hdr sctp6;
             };
         };
     };
+};
+
+enum ethertype_t {
+    ETHERTYPE_IP            = 0x0800,
+    ETHERTYPE_ARP           = 0x0806,
+    ETHERTYPE_REVARP        = 0x8035,
+    ETHERTYPE_8021Q         = 0x8100,
+    ETHERTYPE_IPX           = 0x8137,
+    ETHERTYPE_IPV6          = 0x86dd,
+    ETHERTYPE_PPP           = 0x880b,
+    ETHERTYPE_MPLS          = 0x8847,
+    ETHERTYPE_MPLS_MULTI    = 0x8848,
+    ETHERTYPE_JUMBO         = 0x8870,
+    ETHERTYPE_EAPOL         = 0x888e,
+    ETHERTYPE_CFM           = 0x8902,
+    ETHERTYPE_LOOPBACK      = 0x9000,
+};
+
+enum ipproto_t {
+    IPPROTO_ICMP        = 1,
+    IPPROTO_TCP         = 6,
+    IPPROTO_UDP         = 17,
+    IPPROTO_IPV6FRAG    = 44,
+    IPPROTO_ICMPV6      = 58,
+    IPPROTO_SCTP        = 132,
+};
+
+enum ipv_t {
+    IPV4    = 0x40,
+    IPV6    = 0x60,
 };
 """
 
@@ -128,12 +174,10 @@ struct ether_packet __packed
 class BPFView(binja.BinaryView):
     @classmethod
     def is_valid_for_data(cls, data):
-        """
-        Raw BPF bytecode does not have any header, so we check that the buffer
-        length is a multiple of the instruction length, and that every
-        instruction is a valid instruction.  This is not ideal, but since
-        length is bound by BPF_MAXINSNS, this seems workable.
-        """
+        # Raw BPF bytecode does not have any header, so we check that the buffer
+        # length is a multiple of the instruction length, and that every
+        # instruction is a valid instruction.  This is not ideal, but since
+        # length is bound by BPF_MAXINSNS, this seems workable.
         if data.length > BPF_MAXINSNS * BPFInstruction.INSN_SIZE:
             return False
         if data.length % BPFInstruction.INSN_SIZE != 0:
