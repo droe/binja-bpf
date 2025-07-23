@@ -74,9 +74,6 @@ class BPFArch(binja.Architecture):
             insn = self._insn_cls(data, addr)
         except BPFInstruction.InvalidStorageError as e:
             return None
-        except BPFInstruction.InvalidInstructionError as e:
-            #print("*** get_instruction_info", data[0:8], f"{addr:#06x}")
-            raise
 
         info = binja.InstructionInfo(length=BPFInstruction.INSN_SIZE)
         if insn.bpf_class == BPF_JMP:
@@ -96,9 +93,6 @@ class BPFArch(binja.Architecture):
             insn = self._insn_cls(data, addr)
         except BPFInstruction.InvalidStorageError as e:
             return [], 0
-        except BPFInstruction.InvalidInstructionError as e:
-            #print("*** get_instruction_text", data[0:8], f"{addr:#06x}")
-            raise
 
         if insn.bpf_class == BPF_LD:
             tokens = [
@@ -327,14 +321,19 @@ class BPFArch(binja.Architecture):
         return value
 
     def get_instruction_low_level_il(self, data, addr, il):
-        #print("*** instructions count", len(il), "il.source_function", il.source_function)
+        # Workaround for https://github.com/Vector35/binaryninja-api/issues/7099
+        # Spurious calls for single addresses have len(il) == 0.
+        # Because BPF only every has a single function, always mapped at offset 0,
+        # len(il) == 0 can only happen legitimately for addr == 0.
+        # This workaround does not cover spurious calls for addr == 0.  That
+        # seems acceptable, as we have not seen any spurious calls for offset 0.
+        if addr != 0 and len(il) == 0:
+            return 0
+
         try:
             insn = self._insn_cls(data, addr)
         except BPFInstruction.InvalidStorageError as e:
             return 0
-        except BPFInstruction.InvalidInstructionError as e:
-            #print("*** get_instruction_low_level_il", data[0:8], f"{addr:#06x}")
-            raise
 
         if insn.bpf_class == BPF_LD:
             if insn.bpf_mode == BPF_IMM:
@@ -425,7 +424,6 @@ class BPFArch(binja.Architecture):
                     cond = il.compare_equal(4, op_l, op_r)
                 elif insn.bpf_jmpop == BPF_JSET:
                     cond = il.compare_not_equal(4, il.const(4, 0), il.and_expr(4, op_l, op_r))
-                #print(f" *** addr {addr:#06x} if_expr cond", cond, "labels", label_true, label_false, "targets", target_true, target_false)
                 il.append(il.if_expr(cond, label_true, label_false))
 
         elif insn.bpf_class == BPF_RET:

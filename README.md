@@ -20,9 +20,6 @@ length calculations.
 
 ## Known issues
 
--   Hovering over certain constants in HLIL results in spurious warnings and
-    errors in core without impairing plugin functionality.  This seems to be
-    a bug in core, not in the plugin.
 -   NetBSD `BPF_COP`/`BPF_COPX` misc instructions are disassembled, but not
     lifted to LLIL yet.  If you are aware of any real-world use, please do open
     an issue with an example BPF program (source or compiled).
