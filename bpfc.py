@@ -113,6 +113,17 @@ class BPFCompiler:
         with open(f"{prefix}openbsd.bpfcode", "wb") as f:
             f.write(bytes(c))
 
+        # FreeBSD/Linux specific instructions
+        c = cls()
+        c.BPF_STMT(BPF_LD+BPF_IMM, 1337)
+        c.BPF_STMT(BPF_LDX+BPF_W+BPF_IMM, 1)
+        c.BPF_STMT(BPF_ALU+BPF_MOD+BPF_K, 13)
+        c.BPF_STMT(BPF_ALU+BPF_MOD+BPF_X, 0)
+        c.BPF_STMT(BPF_ALU+BPF_XOR+BPF_K, 0xBFBFBFBF)
+        c.BPF_STMT(BPF_ALU+BPF_XOR+BPF_X, 0)
+        c.BPF_STMT(BPF_RET+BPF_A, 0)
+        with open(f"{prefix}freebsd.bpfcode", "wb") as f:
+            f.write(bytes(c))
 
 
 class BPFLECompiler(BPFCompiler):
