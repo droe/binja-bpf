@@ -18,15 +18,11 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-import binaryninja as binja
+from .bpfarch import BPFLEArch, BPFBEArch, BPFMainCallingConvention
+from .bpfview import BPFLEView, BPFBEView
 
-if __package__ is None or __package__ == '':
-    import bpf
-else:
-    from . import bpf
-
-bpf.BPFLEArch.register()
-bpf.BPFBEArch.register()
-bpf.BPFLEView.register()
-bpf.BPFBEView.register()
-bpf.BPFMainCallingConvention.register()
+BPFLEArch.register()
+BPFBEArch.register()
+BPFMainCallingConvention.register()
+BPFLEView.register()
+BPFBEView.register()
