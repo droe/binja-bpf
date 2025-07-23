@@ -64,6 +64,13 @@ struct ip6_hdr __packed {
     uint128_t   ip6_dst;
 };
 
+struct ip6_frag_hdr __packed {
+    uint8_t     ip6f_nxt;
+    uint8_t     ip6f_reserved;
+    uint16_t    ip6f_offm;
+    uint32_t    ip6f_id;
+};
+
 struct udp_hdr __packed {
     uint16_t    udp_sport;
     uint16_t    udp_dport;
@@ -96,23 +103,36 @@ struct sctp_hdr __packed {
     struct sctp_chunk_hdr sctp_chunk[1];
 };
 
+struct icmp_hdr __packed {
+    uint8_t     icmp_type;
+    uint8_t     icmp_code;
+    uint16_t    icmp_chksum;
+};
+
+union ipproto4 __packed {
+    struct tcp_hdr      tcp;
+    struct udp_hdr      udp;
+    struct sctp_hdr     sctp;
+    struct icmp_hdr     icmp;
+};
+
+union ipproto6 __packed {
+    struct ip6_frag_hdr ip6f;
+    struct tcp_hdr      tcp;
+    struct udp_hdr      udp;
+    struct sctp_hdr     sctp;
+    struct icmp_hdr     icmp;
+};
+
 struct ip_packet __packed {
     union {
         struct {
             struct ip_hdr ip;
-            union {
-                struct tcp_hdr  tcp;
-                struct udp_hdr  udp;
-                struct sctp_hdr sctp;
-            };
+            union ipproto4 p;
         };
         struct {
             struct ip6_hdr ip6;
-            union {
-                struct tcp_hdr  tcp6;
-                struct udp_hdr  udp6;
-                struct sctp_hdr sctp6;
-            };
+            union ipproto6 p6;
         };
     };
 };
@@ -122,19 +142,11 @@ struct ether_packet __packed {
     union {
         struct {
             struct ip_hdr ip;
-            union {
-                struct tcp_hdr  tcp;
-                struct udp_hdr  udp;
-                struct sctp_hdr sctp;
-            };
+            union ipproto4 p;
         };
         struct {
             struct ip6_hdr ip6;
-            union {
-                struct tcp_hdr  tcp6;
-                struct udp_hdr  udp6;
-                struct sctp_hdr sctp6;
-            };
+            union ipproto6 p6;
         };
     };
 };
@@ -167,6 +179,34 @@ enum ipproto_t {
 enum ipv_t {
     IPV4    = 0x40,
     IPV6    = 0x60,
+};
+
+enum icmp_type_t {
+    ICMP_ECHOREPLY          = 0,
+    ICMP_UNREACH            = 3,
+    ICMP_SOURCEQUENCH       = 4,
+    ICMP_REDIRECT           = 5,
+    ICMP_ALTHOSTADDR        = 6,
+    ICMP_ECHO               = 8,
+    ICMP_ROUTERADVERT       = 9,
+    ICMP_ROUTERSOLICIT      = 10,
+    ICMP_TIMXCEED           = 11,
+    ICMP_PARAMPROB          = 12,
+    ICMP_TSTAMP             = 13,
+    ICMP_TSTAMPREPLY        = 14,
+    ICMP_IREQ               = 15,
+    ICMP_IREQREPLY          = 16,
+    ICMP_MASKREQ            = 17,
+    ICMP_MASKREPLY          = 18,
+    ICMP_TRACEROUTE         = 30,
+    ICMP_DATACONVERR        = 31,
+    ICMP_MOBILE_REDIRECT    = 32,
+    ICMP_IPV6_WHEREAREYOU   = 33,
+    ICMP_IPV6_IAMHERE       = 34,
+    ICMP_MOBILE_REGREQUEST  = 35,
+    ICMP_MOBILE_REGREPLY    = 36,
+    ICMP_SKIP               = 39,
+    ICMP_PHOTURIS           = 40,
 };
 """
 
