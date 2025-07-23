@@ -48,6 +48,10 @@ class BPFCompiler:
     def __bytes__(self):
         return b''.join(self._insns)
 
+    def write_to(self, path):
+        with open(path, "wb") as f:
+            f.write(bytes(self))
+
     @classmethod
     def build_examples(cls, prefix):
         """
@@ -66,8 +70,7 @@ class BPFCompiler:
         c.BPF_JUMP(BPF_JMP+BPF_JEQ+BPF_K, REVARP_REQUEST, 0, 1)
         c.BPF_STMT(BPF_RET+BPF_K, SIZEOF_ETHER_ARP + SIZEOF_ETHER_HEADER)
         c.BPF_STMT(BPF_RET+BPF_K, 0)
-        with open(f"{prefix}rarp.bpfcode", "wb") as f:
-            f.write(bytes(c))
+        c.write_to(f"{prefix}rarp.bpfcode")
 
         # Classic IP address pair example from BSD manual pages
         ETHERTYPE_IP = 0x0800
@@ -83,8 +86,7 @@ class BPFCompiler:
         c.BPF_JUMP(BPF_JMP+BPF_JEQ+BPF_K, 0x8003700f, 0, 1)
         c.BPF_STMT(BPF_RET+BPF_K, 0xFFFFFFFF)
         c.BPF_STMT(BPF_RET+BPF_K, 0)
-        with open(f"{prefix}ipaddr.bpfcode", "wb") as f:
-            f.write(bytes(c))
+        c.write_to(f"{prefix}ipaddr.bpfcode")
 
         # Classic TCP finger example from BSD manual pages
         ETHERTYPE_IP = 0x0800
@@ -103,15 +105,13 @@ class BPFCompiler:
         c.BPF_JUMP(BPF_JMP+BPF_JEQ+BPF_K, 79, 0, 1)
         c.BPF_STMT(BPF_RET+BPF_K, 0xFFFFFFFF)
         c.BPF_STMT(BPF_RET+BPF_K, 0)
-        with open(f"{prefix}tcpfinger.bpfcode", "wb") as f:
-            f.write(bytes(c))
+        c.write_to(f"{prefix}tcpfinger.bpfcode")
 
         # OpenBSD specific instructions
         c = cls()
         c.BPF_STMT(BPF_LD+BPF_W+BPF_RND, 0)
         c.BPF_STMT(BPF_RET+BPF_A, 0)
-        with open(f"{prefix}openbsd.bpfcode", "wb") as f:
-            f.write(bytes(c))
+        c.write_to(f"{prefix}openbsd.bpfcode")
 
         # FreeBSD/Linux specific instructions
         c = cls()
@@ -122,8 +122,7 @@ class BPFCompiler:
         c.BPF_STMT(BPF_ALU+BPF_XOR+BPF_K, 0xBFBFBFBF)
         c.BPF_STMT(BPF_ALU+BPF_XOR+BPF_X, 0)
         c.BPF_STMT(BPF_RET+BPF_A, 0)
-        with open(f"{prefix}freebsd.bpfcode", "wb") as f:
-            f.write(bytes(c))
+        c.write_to(f"{prefix}freebsd.bpfcode")
 
 
 class BPFLECompiler(BPFCompiler):
