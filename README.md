@@ -26,6 +26,8 @@ FreeBSD, NetBSD, OpenBSD and Linux flavours, including FreeBSD/Linux
 
 ## Plans
 
+The plugin should support loading libpcap cbpf-savefile(5) format binaries.
+
 Support for extended BPF (eBPF) programs, raw binary eBPF programs, and eBPF
 profile ELF files including BPF Type Format (BTF) would be a welcome addition
 after classic BPF support stabilizes.  No plans for cryptocurrency virtual
