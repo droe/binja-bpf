@@ -18,12 +18,6 @@ Ships with convenient packet header structs, though for most BPF programs,
 field offsets beyond the IP header will not resolve due to dynamic header
 length calculations.
 
-## Known issues
-
--   NetBSD `BPF_COP`/`BPF_COPX` misc instructions are disassembled, but not
-    lifted to LLIL yet.  If you are aware of any real-world use, please do open
-    an issue with an example BPF program (source or compiled).
-
 ## Plans
 
 The plugin should support loading libpcap cbpf-savefile(5) format binaries.
