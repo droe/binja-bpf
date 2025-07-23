@@ -97,14 +97,20 @@ class BPFInstruction:
         if (err := self.validate()) is not None:
             raise BPFInstruction.InvalidInstructionError(err)
 
+    def _apply_jump_offset(self, pc, offset):
+        """
+        Apply a jump offset in BPF semantics (insn size 1) to pc (insn size 8).
+        """
+        return pc + (offset + 1) * BPFInstruction.INSN_SIZE
+
     def jmp_target_ja(self, pc):
         assert self.bpf_class == BPF_JMP and self.bpf_jmpop == BPF_JA
-        return pc + BPFInstruction.INSN_SIZE + self.k * BPFInstruction.INSN_SIZE
+        return self._apply_jump_offset(pc, self.k)
 
     def jmp_target_jxx(self, pc):
         assert self.bpf_class == BPF_JMP and self.bpf_jmpop != BPF_JA
-        target_true = pc + BPFInstruction.INSN_SIZE + self.jt * BPFInstruction.INSN_SIZE
-        target_false = pc + BPFInstruction.INSN_SIZE + self.jf * BPFInstruction.INSN_SIZE
+        target_true = self._apply_jump_offset(pc, self.jt)
+        target_false = self._apply_jump_offset(pc, self.jf)
         return target_true, target_false
 
     def validate(self):
@@ -121,18 +127,23 @@ class BPFInstruction:
                 # BPF_W is 0
                 if self.code != self.bpf_class + self.bpf_mode + BPF_W:
                     return f"Unexpected bits set in ld len opcode {self.code:#04x}"
+                if self.k != 0:
+                    return f"Unused non-zero k {self.k:#010x} for ld len opcode {self.code:#04x}"
+            elif self.bpf_mode == BPF_RND:
+                # BPF_W is 0
+                if self.code != self.bpf_class + self.bpf_mode + BPF_W:
+                    return f"Unexpected bits set in ld rnd opcode {self.code:#04x}"
+                if self.k != 0:
+                    return f"Unused non-zero k {self.k:#010x} for ld rnd opcode {self.code:#04x}"
             elif self.bpf_mode == BPF_ABS:
                 if self.code != self.bpf_class + self.bpf_mode + self.bpf_size:
                     return f"Unexpected bits set in ld abs opcode {self.code:#04x}"
             elif self.bpf_mode == BPF_IND:
                 if self.code != self.bpf_class + self.bpf_mode + self.bpf_size:
                     return f"Unexpected bits set in ld ind opcode {self.code:#04x}"
-            elif self.bpf_mode == BPF_RND:
-                # BPF_W is 0
-                if self.code != self.bpf_class + self.bpf_mode + BPF_W:
-                    return f"Unexpected bits set in ld rnd opcode {self.code:#04x}"
             else:
                 return f"Unknown ld opcode {self.code:#04x}"
+
         elif self.bpf_class == BPF_LDX:
             if self.bpf_mode == BPF_IMM:
                 # BPF_W is 0
@@ -148,21 +159,26 @@ class BPFInstruction:
                 # BPF_W is 0
                 if self.code != self.bpf_class + self.bpf_mode + BPF_W:
                     return f"Unexpected bits set in ldx len opcode {self.code:#04x}"
+                if self.k != 0:
+                    return f"Unused non-zero k {self.k:#010x} for ldx len opcode {self.code:#04x}"
             elif self.bpf_mode == BPF_MSH:
                 if self.code != self.bpf_class + self.bpf_mode + BPF_B:
                     return f"Unexpected bits set in ldx msh opcode {self.code:#04x}"
             else:
                 return f"Unknown ldx opcode {self.code:#04x}"
+
         elif self.bpf_class == BPF_ST:
             if self.code != self.bpf_class:
                 return f"Unexpected bits set in st opcode {self.code:#04x}"
             if self.k >= BPF_MEMWORDS:
                 return f"Immediate index k into M out of bounds {self.k}"
+
         elif self.bpf_class == BPF_STX:
             if self.code != self.bpf_class:
                 return f"Unexpected bits set in stx opcode {self.code:#04x}"
             if self.k >= BPF_MEMWORDS:
                 return f"Immediate index k into M out of bounds {self.k}"
+
         elif self.bpf_class == BPF_ALU:
             if self.bpf_aluop == BPF_NEG:
                 if self.code != self.bpf_class + self.bpf_aluop:
@@ -173,6 +189,9 @@ class BPFInstruction:
                 if self.bpf_aluop not in (BPF_ADD, BPF_SUB, BPF_MUL, BPF_DIV, BPF_AND,
                                           BPF_OR, BPF_LSH, BPF_RSH, BPF_MOD, BPF_XOR):
                     return f"Unknown alu op in opcode {self.code:#04x}"
+            if self.bpf_src != BPF_K and self.k != 0:
+                return f"Unused non-zero k {self.k:#010x} for alu opcode {self.code:#04x}"
+
         elif self.bpf_class == BPF_JMP:
             if self.bpf_jmpop == BPF_JA:
                 if self.code != self.bpf_class + self.bpf_jmpop:
@@ -180,18 +199,31 @@ class BPFInstruction:
             else:
                 if self.code != self.bpf_class + self.bpf_jmpop + self.bpf_src:
                     return f"Unexpected bits set in jxx opcode {self.code:#04x}"
+
         elif self.bpf_class == BPF_RET:
             if self.code != self.bpf_class + self.bpf_rval:
                 return f"Unexpected bits set in ret opcode {self.code:#04x}"
             if self.bpf_rval not in (BPF_A, BPF_K):
                 return f"Unexpected rval {self.bpf_rval:#04x} in ret opcode {self.code:#04x}"
+            if self.bpf_rval != BPF_K and self.k != 0:
+                return f"Unused non-zero k {self.k:#010x} for ret opcode {self.code:#04x}"
+
         elif self.bpf_class == BPF_MISC:
             if self.code != self.bpf_class + self.bpf_miscop:
                 return f"Unexpected bits set in misc opcode {self.code:#04x}"
             if self.bpf_miscop not in (BPF_TAX, BPF_TXA, BPF_COP, BPF_COPX):
                 return f"Unknown misc opcode {self.code:#04x}"
+            if self.bpf_miscop in (BPF_TAX, BPF_TXA) and self.k != 0:
+                # XXX BPF_COP, BPF_COPX
+                return f"Unused non-zero k {self.k:#010x} for misc opcode {self.code:#04x}"
+
         else:
             return f"Unknown class {self.bpf_class:#04x} in opcode {self.code:#04x}"
+
+        if self.bpf_class != BPF_JMP or self.bpf_jmpop == BPF_JA:
+            if self.jt != 0 or self.jf != 0:
+                return f"Unused non-zero jt/jf {self.jt:#04x}/{self.jf:#04x} for opcode {self.code:#04x}"
+
         return None
 
 
