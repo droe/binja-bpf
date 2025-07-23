@@ -14,15 +14,18 @@ FreeBSD, NetBSD, OpenBSD and Linux flavours, including FreeBSD/Linux
 `BPF_XOR`/`BPF_MOD`, OpenBSD `BPF_RND`, and limited support for NetBSD
 `BPF_COP`/`BPF_COPX`.
 
+Ships with convenient packet header structs, though for most BPF programs,
+field offsets beyond the IP header will not resolve due to dynamic header
+length calculations.
+
 ## Known issues
 
 -   Hovering over certain constants in HLIL results in spurious warnings and
     errors in core without impairing plugin functionality.  This seems to be
     a bug in core, not in the plugin.
 -   NetBSD `BPF_COP`/`BPF_COPX` misc instructions are disassembled, but not
-    lifted to LLIL yet.
--   The plugin does ship packet header structs, though field access beyond the
-    IP header will not be resolved by Binary Ninja due to the dynamic offset.
+    lifted to LLIL yet.  If you are aware of any real-world use, please do open
+    an issue with an example BPF program (source or compiled).
 
 ## Plans
 
