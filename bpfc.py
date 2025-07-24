@@ -52,12 +52,16 @@ class BPFCompiler:
         with open(path, "wb") as f:
             f.write(bytes(self))
 
+    def parse_c_number_literals(self, source):
+        lines = source.strip().splitlines()
+        for line in lines:
+            for rmc in ("{", ",", "}"):
+                line = line.replace(rmc, "")
+            ints = [int(x, 0) for x in line.strip().split()]
+            self.insn(*ints)
+
     @classmethod
     def build_examples(cls, prefix):
-        """
-        Writes a number of BPF filter examples to path.
-        """
-
         # Classic reverse ARP example from BSD manual pages
         ETHERTYPE_REVARP = 0x8035
         REVARP_REQUEST = 3
@@ -126,7 +130,7 @@ class BPFCompiler:
 
         # bpfdoor as per https://raw.githubusercontent.com/snapattack/bpfdoor-scanner/refs/heads/main/sample/bpfdoor.c
         c = cls()
-        lines = """
+        c.parse_c_number_literals("""
                 { 0x28, 0, 0, 0x0000000c },
                 { 0x15, 0, 27, 0x00000800 },
                 { 0x30, 0, 0, 0x00000017 },
@@ -157,13 +161,9 @@ class BPFCompiler:
                 { 0x15, 0, 1, 0x00005293 },
                 { 0x6, 0, 0, 0x0000ffff },
                 { 0x6, 0, 0, 0x00000000 },
-        """.strip().splitlines()
-        for line in lines:
-            for rmc in ("{", ",", "}"):
-                line = line.replace(rmc, "")
-            ints = [int(x, 0) for x in line.strip().split()]
-            c.insn(*ints)
+        """)
         c.write_to(f"{prefix}bpfdoor.bpfcode")
+
 
 class BPFLECompiler(BPFCompiler):
     _insn_layout = '<HBBI'
