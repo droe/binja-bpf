@@ -143,6 +143,7 @@ class BPFArch(binja.Architecture):
                 tokens += [
                     binja.InstructionTextToken(binja.InstructionTextTokenType.TextToken, "arc4random()"),
                 ]
+
         elif insn.bpf_class == BPF_LDX:
             tokens = [
                 binja.InstructionTextToken(binja.InstructionTextTokenType.InstructionToken, "mov"),
@@ -177,6 +178,7 @@ class BPFArch(binja.Architecture):
                     binja.InstructionTextToken(binja.InstructionTextTokenType.IntegerToken, f"0x0f"),
                     binja.InstructionTextToken(binja.InstructionTextTokenType.TextToken, ")"),
                 ]
+
         elif insn.bpf_class == BPF_ST:
             tokens = [
                 binja.InstructionTextToken(binja.InstructionTextTokenType.InstructionToken, "mov"),
@@ -186,6 +188,7 @@ class BPFArch(binja.Architecture):
                 binja.InstructionTextToken(binja.InstructionTextTokenType.TextToken, " "),
                 binja.InstructionTextToken(binja.InstructionTextTokenType.RegisterToken, "A"),
             ]
+
         elif insn.bpf_class == BPF_STX:
             tokens = [
                 binja.InstructionTextToken(binja.InstructionTextTokenType.InstructionToken, "mov"),
@@ -195,6 +198,7 @@ class BPFArch(binja.Architecture):
                 binja.InstructionTextToken(binja.InstructionTextTokenType.TextToken, " "),
                 binja.InstructionTextToken(binja.InstructionTextTokenType.RegisterToken, "X"),
             ]
+
         elif insn.bpf_class == BPF_ALU:
             if insn.bpf_aluop == BPF_NEG:
                 tokens = [
@@ -218,6 +222,7 @@ class BPFArch(binja.Architecture):
                     tokens += [
                         binja.InstructionTextToken(binja.InstructionTextTokenType.RegisterToken, "X"),
                     ]
+
         elif insn.bpf_class == BPF_JMP:
             if insn.bpf_jmpop == BPF_JA:
                 target = insn.jmp_target_ja(addr)
@@ -251,6 +256,7 @@ class BPFArch(binja.Architecture):
                     binja.InstructionTextToken(binja.InstructionTextTokenType.TextToken, " "),
                     binja.InstructionTextToken(binja.InstructionTextTokenType.PossibleAddressToken, f"{target_false:#x}"),
                 ]
+
         elif insn.bpf_class == BPF_RET:
             tokens = [
                 binja.InstructionTextToken(binja.InstructionTextTokenType.InstructionToken, "ret"),
@@ -264,6 +270,7 @@ class BPFArch(binja.Architecture):
                 tokens += [
                     binja.InstructionTextToken(binja.InstructionTextTokenType.IntegerToken, f"{insn.k:#x}"),
                 ]
+
         elif insn.bpf_class == BPF_MISC:
             if insn.bpf_miscop == BPF_TAX:
                 tokens = [
@@ -301,6 +308,7 @@ class BPFArch(binja.Architecture):
                     binja.InstructionTextToken(binja.InstructionTextTokenType.TextToken, " "),
                     binja.InstructionTextToken(binja.InstructionTextTokenType.RegisterToken, "X"),
                 ]
+
         return tokens, BPFInstruction.INSN_SIZE
 
     def _load_from_P(self, il, width, offset, *, index=False):
@@ -323,7 +331,7 @@ class BPFArch(binja.Architecture):
     def get_instruction_low_level_il(self, data, addr, il):
         # Workaround for https://github.com/Vector35/binaryninja-api/issues/7099
         # Spurious calls for single addresses have len(il) == 0.
-        # Because BPF only every has a single function, always mapped at offset 0,
+        # Because BPF only ever has a single function, always mapped at offset 0,
         # len(il) == 0 can only happen legitimately for addr == 0.
         # This workaround does not cover spurious calls for addr == 0.  That
         # seems acceptable, as we have not seen any spurious calls for offset 0.
